@@ -4,10 +4,12 @@ Pseudo-code: guides/pseudocode/04_curator.md
 Kiểm tra:    pytest tests/test_04_curator.py
 Chạy thật:   python -m lab.curator
 """
+import json
 import re
 from pathlib import Path
 
-from .tasks import eval_markers   # có sẵn: định danh của tác vụ đánh giá, tính lúc chạy
+from .agent import make_robust_model
+from .tasks import ROOT, eval_markers   # có sẵn: định danh của tác vụ đánh giá, tính lúc chạy
 
 # ---- CÓ SẴN, KHÔNG SỬA: kiểm tra và tách khối skill (phần dễ sai và liên quan bảo mật) ----------------
 SAFE_NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -68,7 +70,66 @@ def curate_skills(results_dir="results", source_condition="baseline", out_dir=No
     model mặc định: make_model() (lab.model).
     Trả về: danh sách đường dẫn SKILL.md đã ghi.
     """
-    raise NotImplementedError("TODO: cài đặt curate_skills (xem guides/pseudocode/04_curator.md)")
+    out_dir = Path(out_dir) if out_dir else ROOT / "skills" / "auto"
+    runs = []
+    for f in sorted(Path(results_dir, source_condition).glob("*/run.json")):
+        r = json.loads(f.read_text(encoding="utf-8"))
+        if r.get("role") != "learn":                       # never touch evaluation tasks
+            continue
+        trace_file = f.parent / "trace.md"
+        trace = trace_file.read_text(encoding="utf-8")[-6000:] if trace_file.exists() else ""
+        failed = [(c["name"], c.get("detail", "")) for c in r.get("checks", []) if not c.get("passed")]
+        runs.append({"task": r["task"], "failed": failed, "trace": trace})
+    if not any(r["failed"] for r in runs):
+        print("curator: no failed checks in learning tasks - nothing to learn")
+        return []
+    blocks = []
+    for r in runs:
+        failed = "\n".join(f"- {n}: {d}" for n, d in r["failed"]) or "- (none)"
+        blocks.append(f"## Run of task {r['task']}\nFailed checks:\n{failed}\n\nTrace (tail):\n{r['trace']}")
+    model = model or make_robust_model()
+    reply = model.invoke(PROMPT.format(max_skills=max_skills, runs="\n\n".join(blocks))).text
+    written = []
+    for name, text in parse_skill_blocks(reply):
+        problems = validate_skill(text, expected_name=name)
+        if problems:
+            print(f"curator: skipped skill {name!r}: {problems}")
+        if len(written) >= max_skills or problems:
+            continue
+        path = out_dir / name / "SKILL.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text + "\n", encoding="utf-8")
+        written.append(path)
+    return written
+
+
+PROMPT = """You write SKILLS for a coding and data-analysis agent.
+Below are the failed checks (name and the grading bot's feedback) and the traces of several runs.
+Find the general PROCESS mistakes (not task-specific answers) and write at most {max_skills} short skills
+that help avoid these mistakes on NEW tasks of the same kind.
+
+Rules:
+- Skills must be general: never mention task ids, file names specific to one task, column/function names, answers or numbers.
+  Names REQUIRED by an organisation convention stated in the feedback (output file names, JSON keys, headings, prefixes) are allowed,
+  because they are the rule itself.
+- Most failures are violated organisation conventions ("RULE: ..." in the feedback) that the task text never stated.
+  Copy EVERY such convention into a skill as a concrete, checkable instruction with its exact required names, keys,
+  headings, units and formats; group them by kind of task (e.g. changing code, producing a data report, triaging logs).
+  Vague advice such as "follow the conventions" or "check units" is useless: the agent cannot know the conventions otherwise.
+- Each skill has a YAML frontmatter with `name` (lowercase, hyphens) and `description` (one sentence starting with
+  "Use when ..." describing a broad trigger situation), followed by at most 40 lines of imperative instructions
+  (a numbered checklist ending with a self-check list works well).
+- Output format, exactly:
+=== SKILL: <name> ===
+---
+name: <name>
+description: <when to use>
+---
+<body>
+=== END ===
+
+{runs}
+"""
 
 
 if __name__ == "__main__":
