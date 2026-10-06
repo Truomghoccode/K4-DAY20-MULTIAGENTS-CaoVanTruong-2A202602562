@@ -246,62 +246,44 @@ E       decimal.InvalidOperation: [<class 'decimal.ConversionSyntax'>]
 inventory\pricing.py:15: InvalidOperation
 _______________________ t
 
-### Tool call: edit_file
-{"file_path": "workspace/inventory/pricing.py", "old_string": "from decimal import Decimal\n\n\ndef parse_price(text):", "new_string": "from decimal import Decimal, ROUND_HALF_UP\n\n\ndef parse_price(text: str) -> Decimal:"}
+### Tool call: write_file
+{"file_path": "workspace/inventory/pricing.py", "content": "\"\"\"Price utilities for the inventory package.\"\"\"\nfrom decimal import Decimal, ROUND_HALF_UP\n\n\ndef parse_price(text: str) -> Decimal:\n    \"\"\"Convert a price string to a Decimal.\n\n    Supported formats:\n      \"$1,299.50\" -> Decimal(\"1299.50\")\n      \"  12 \"     -> Decimal(\"12\")\n      \"1299.5\"    -> Decimal(\"1299.5\")\n      \"(12.00)\"   -> Decimal(\"-12.00\")   # accounting style: parentheses mean negative\n    \"\"\"\n    cleaned = text.strip().replace(\"$\", \"\").replace(\",\", \"\")\n    if cleaned.startswith(\"(\") and cleaned.endswith(\")\"):\n        cleaned = \"-\" + cleaned[1:-1]\n    return Decimal(cleaned)\n\n\ndef apply_discount(price: Decimal, percent: int | Decimal) -> Decimal:\n    \"\"\"Return `price` after a percentage discount.\n\n    The result is a Decimal rounded to 2 decimal places using the\n    commercial rule \"round half up\" (0.005 -> 0.01).\n    \"\"\"\n    discounted = price * (100 - percent) / 100\n    return discounted.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)\n"}
 
 ### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/pricing.py'
+Updated file /workspace/inventory/pricing.py
 
-### Tool call: edit_file
-{"file_path": "workspace/inventory/pricing.py", "old_string": "    cleaned = text.strip().replace(\"$\", \"\")\n    return Decimal(cleaned)\n\n\ndef apply_discount(price, percent):", "new_string": "    cleaned = text.strip()\n    if cleaned.startswith(\"(\") and cleaned.endswith(\")\"):\n        cleaned = f\"-{cleaned[1:-1]}\"\n    cleaned = cleaned.replace(\"$\", \"\").replace(\",\", \"\")\n    return Decimal(cleaned)\n\n\ndef apply_discount(price: Decimal, percent: int | float | Decimal) -> Decimal:"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/pricing.py'
-
-### Tool call: edit_file
-{"file_path": "workspace/inventory/pricing.py", "old_string": "    return discounted.quantize(Decimal(\"0.01\"))", "new_string": "    return discounted.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)"}
+### Tool call: write_file
+{"file_path": "workspace/inventory/report.py", "content": "\"\"\"Inventory reports.\"\"\"\nfrom decimal import Decimal\nfrom typing import Iterable, TypedDict\n\nfrom .pricing import apply_discount, parse_price\n\n\nclass Item(TypedDict, total=False):\n    name: str\n    price: str\n    qty: int\n    discount: int | Decimal\n\n\ndef total_value(items: Iterable[Item]) -> Decimal:\n    \"\"\"Total value of `items` after per-item discounts.\n\n    Each item is a dict: {\"name\": str, \"price\": str, \"qty\": int, \"discount\": percent (optional)}.\n    \"\"\"\n    total = Decimal(\"0\")\n    for item in items:\n        price = parse_price(item[\"price\"])\n        price = apply_discount(price, item.get(\"discount\", 0))\n        total += price * item[\"qty\"]\n    return total\n\n\ndef low_stock(items: Iterable[Item], threshold: int = 5) -> list[str]:\n    \"\"\"Names of the items whose quantity is strictly below `threshold`.\n\n    The names are sorted alphabetically, ignoring case.\n    \"\"\"\n    return sorted(\n        (item[\"name\"] for item in items if item[\"qty\"] < threshold),\n        key=str.casefold,\n    )\n"}
 
 ### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/pricing.py'
+Updated file /workspace/inventory/report.py
 
-### Tool call: edit_file
-{"file_path": "workspace/inventory/export.py", "old_string": "def to_csv_row(item):", "new_string": "def to_csv_row(item: dict[str, object]) -> str:"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/export.py'
-
-### Tool call: edit_file
-{"file_path": "workspace/inventory/export.py", "old_string": "    price = parse_price(item[\"price\"])\n    return f'{item[\"name\"]},{price:.2f},{item[\"qty\"]}'", "new_string": "    name = str(item[\"name\"])\n    if \",\" in name or '\"' in name:\n        name = '\"' + name.replace('\"', '\"\"') + '\"'\n    price = parse_price(str(item[\"price\"]))\n    return f'{name},{price:.2f},{item[\"qty\"]}'"}
+### Tool call: write_file
+{"file_path": "workspace/inventory/export.py", "content": "\"\"\"Export helpers.\"\"\"\nfrom .pricing import parse_price\n\n\ndef to_csv_row(item: dict[str, str | int]) -> str:\n    \"\"\"Format one item as a CSV row: name,price,qty (price with 2 decimals).\n\n    A name that contains a comma or a double quote is wrapped in double quotes,\n    and every double quote inside it is doubled (RFC 4180).\n    \"\"\"\n    name = str(item[\"name\"])\n    if \",\" in name or '\"' in name:\n        name = '\"' + name.replace('\"', '\"\"') + '\"'\n    price = parse_price(str(item[\"price\"]))\n    return f'{name},{price:.2f},{item[\"qty\"]}'\n"}
 
 ### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/export.py'
+Updated file /workspace/inventory/export.py
 
-### Tool call: edit_file
-{"file_path": "workspace/inventory/report.py", "old_string": "def total_value(items):", "new_string": "def total_value(items: list[dict[str, object]]) -> Decimal:"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/report.py'
-
-### Tool call: edit_file
-{"file_path": "workspace/inventory/report.py", "old_string": "def low_stock(items, threshold=5):", "new_string": "def low_stock(items: list[dict[str, object]], threshold: int = 5) -> list[str]:"}
+### Tool call: read_file
+{"file_path": "workspace/CHANGELOG.md", "limit": 1000}
 
 ### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/report.py'
+@@ lines 1-6 of 6 @@
+# Changelog
+
+## Unreleased
+
+## 0.3.1
+- initial import
 
 ### Tool call: edit_file
-{"file_path": "workspace/inventory/report.py", "old_string": "    return [item[\"name\"] for item in items if item[\"qty\"] <= threshold]", "new_string": "    names = [str(item[\"name\"]) for item in items if item[\"qty\"] < threshold]\n    return sorted(names, key=str.casefold)"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/report.py'
-
-### Tool call: edit_file
-{"file_path": "workspace/CHANGELOG.md", "old_string": "## Unreleased\n", "new_string": "## Unreleased\n\n- fix(parse_price): support thousands separators and accounting-style negatives\n- fix(apply_discount): round discounted prices half up to two decimal places\n- fix(to_csv_row): escape names containing commas or double quotes\n- fix(low_stock): use a strict threshold and sort names case-insensitively\n"}
+{"file_path": "workspace/CHANGELOG.md", "old_string": "## Unreleased\n", "new_string": "## Unreleased\n- fix(parse_price): support thousands separators and accounting negatives\n- fix(apply_discount): round monetary discounts half up\n- fix(low_stock): use strict threshold and case-insensitive sorting\n- fix(to_csv_row): escape names containing commas or quotes\n"}
 
 ### Tool result
 Successfully replaced 1 instance(s) of the string in '/workspace/CHANGELOG.md'
 
 ### Tool call: write_file
-{"file_path": "workspace/tests/test_regressions.py", "content": "from decimal import Decimal\n\nfrom inventory.export import to_csv_row\nfrom inventory.pricing import apply_discount, parse_price\nfrom inventory.report import low_stock\n\n\ndef test_parse_price_accounting_and_thousands_formats() -> None:\n    assert parse_price(\"$1,299.50\") == Decimal(\"1299.50\")\n    assert parse_price(\"(12.00)\") == Decimal(\"-12.00\")\n\n\ndef test_apply_discount_uses_half_up_rounding() -> None:\n    assert apply_discount(Decimal(\"10.05\"), 10) == Decimal(\"9.05\")\n\n\ndef test_csv_escapes_special_names() -> None:\n    assert to_csv_row({\"name\": 'pen,\"blue\"', \"price\": \"2.5\", \"qty\": 4}) == '\"pen,\"\"blue\"\"\",2.50,4'\n\n\ndef test_low_stock_is_strict_and_case_insensitively_sorted() -> None:\n    items = [\n        {\"name\": \"zebra\", \"qty\": 1},\n        {\"name\": \"Apple\", \"qty\": 4},\n        {\"name\": \"apricot\", \"qty\": 2},\n        {\"name\": \"boundary\", \"qty\": 5},\n    ]\n    assert low_stock(items) == [\"Apple\", \"apricot\", \"zebra\"]\n"}
+{"file_path": "workspace/tests/test_regressions.py", "content": "from decimal import Decimal\n\nfrom inventory.export import to_csv_row\nfrom inventory.pricing import apply_discount, parse_price\nfrom inventory.report import low_stock\n\n\ndef test_parse_price_accounting_and_separator():\n    assert parse_price(\"$1,299.50\") == Decimal(\"1299.50\")\n    assert parse_price(\"(12.00)\") == Decimal(\"-12.00\")\n\n\ndef test_discount_uses_half_up_rounding():\n    assert apply_discount(Decimal(\"10.05\"), 10) == Decimal(\"9.05\")\n\n\ndef test_low_stock_is_strict_and_sorted_case_insensitively():\n    items = [\n        {\"name\": \"zebra\", \"qty\": 1},\n        {\"name\": \"Apple\", \"qty\": 4},\n        {\"name\": \"at threshold\", \"qty\": 5},\n    ]\n    assert low_stock(items) == [\"Apple\", \"zebra\"]\n\n\ndef test_csv_escapes_comma_and_quotes():\n    assert to_csv_row({\"name\": 'a,\"b', \"price\": \"1\", \"qty\": 2}) == '\"a,\"\"b\",1.00,2'\n"}
 
 ### Tool result
 Updated file /workspace/tests/test_regressions.py
@@ -312,91 +294,11 @@ Updated file /workspace/tests/test_regressions.py
 ### Tool result
 ..........                                                               [100%]Running teardown with pytest sessionfinish...
 
-10 passed in 0.05s
-
-[Command succeeded with exit code 0]
-
-### Tool call: edit_file
-{"file_path": "workspace/inventory/pricing.py", "old_string": "def parse_price(text: str) -> Decimal:", "new_string": "def parse_price(text: str) -> Decimal:"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/pricing.py'
-
-### Tool call: read_file
-{"file_path": "workspace/inventory/pricing.py", "limit": 1000}
-
-### Tool result
-@@ lines 1-28 of 28 @@
-"""Price utilities for the inventory package."""
-from decimal import Decimal, ROUND_HALF_UP
-
-
-def parse_price(text: str) -> Decimal:
-    """Convert a price string to a Decimal.
-
-    Supported formats:
-      "$1,299.50" -> Decimal("1299.50")
-      "  12 "     -> Decimal("12")
-      "1299.5"    -> Decimal("1299.5")
-      "(12.00)"   -> Decimal("-12.00")   # accounting style: parentheses mean negative
-    """
-    cleaned = text.strip()
-    if cleaned.startswith("(") and cleaned.endswith(")"):
-        cleaned = f"-{cleaned[1:-1]}"
-    cleaned = cleaned.replace("$", "").replace(",", "")
-    return Decimal(cleaned)
-
-
-def apply_discount(price: Decimal, percent: int | float | Decimal) -> Decimal:
-    """Return `price` after a percentage discount.
-
-    The result is a Decimal rounded to 2 decimal places using the
-    commercial rule "round half up" (0.005 -> 0.01).
-    """
-    discounted = price * (100 - percent) / 100
-    return discounted.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-### Tool call: edit_file
-{"file_path": "workspace/inventory/pricing.py", "old_string": "    cleaned = cleaned.replace(\"$\", \"\").replace(\",\", \"\")\n    return Decimal(cleaned)", "new_string": "    cleaned = cleaned.replace(\"$\", \"\").replace(\",\", \"\")\n    return Decimal(cleaned)"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/pricing.py'
-
-### Tool call: edit_file
-{"file_path": "workspace/inventory/report.py", "old_string": "from decimal import Decimal\n", "new_string": "from decimal import Decimal\nfrom typing import TypedDict\n\n\nclass InventoryItem(TypedDict):\n    name: str\n    price: str\n    qty: int\n    discount: int | float | Decimal\n"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/report.py'
-
-### Tool call: edit_file
-{"file_path": "workspace/inventory/report.py", "old_string": "def total_value(items: list[dict[str, object]]) -> Decimal:", "new_string": "def total_value(items: list[InventoryItem]) -> Decimal:"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/report.py'
-
-### Tool call: edit_file
-{"file_path": "workspace/inventory/report.py", "old_string": "def low_stock(items: list[dict[str, object]], threshold: int = 5) -> list[str]:", "new_string": "def low_stock(items: list[InventoryItem], threshold: int = 5) -> list[str]:"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/report.py'
-
-### Tool call: edit_file
-{"file_path": "workspace/inventory/export.py", "old_string": "from .pricing import parse_price\n\n\ndef to_csv_row(item: dict[str, object]) -> str:", "new_string": "from typing import TypedDict\n\nfrom .pricing import parse_price\n\n\nclass ExportItem(TypedDict):\n    name: str\n    price: str\n    qty: int\n\n\ndef to_csv_row(item: ExportItem) -> str:"}
-
-### Tool result
-Successfully replaced 1 instance(s) of the string in '/workspace/inventory/export.py'
-
-### Tool call: execute
-{"command": "cd workspace && python -m pytest tests -q"}
-
-### Tool result
-..........                                                               [100%]Running teardown with pytest sessionfinish...
-
-10 passed in 0.05s
+10 passed in 0.03s
 
 [Command succeeded with exit code 0]
 
 ### Assistant
-Fixed price parsing for thousands separators and accounting-style negatives, applied half-up discount rounding, added RFC 4180 name escaping to CSV output, and corrected low-stock filtering and sorting. Added regression tests and changelog entries. All 10 tests pass.
+Fixed price parsing, half-up discount rounding, strict case-insensitive low-stock sorting, and CSV name escaping. Added regression tests and changelog entries. The full test suite passes.
 
-Changed: `workspace/inventory/pricing.py`, `workspace/inventory/export.py`, `workspace/inventory/report.py`, `workspace/tests/test_regressions.py`, `workspace/CHANGELOG.md`.
+Changed files: `workspace/inventory/pricing.py`, `workspace/inventory/report.py`, `workspace/inventory/export.py`, `workspace/tests/test_regressions.py`, and `workspace/CHANGELOG.md`.

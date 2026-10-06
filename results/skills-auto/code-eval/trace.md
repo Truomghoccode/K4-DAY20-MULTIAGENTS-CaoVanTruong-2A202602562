@@ -12,6 +12,9 @@ When you are done, reply with a short summary of what you changed and why.
 ### Tool call: read_file
 {"file_path": "skills/code-change-compliance/SKILL.md", "limit": 1000}
 
+### Tool call: read_file
+{"file_path": "skills/code-maintenance-conventions/SKILL.md", "limit": 1000}
+
 ### Tool result
 @@ lines 1-10 of 10 @@
 ---
@@ -25,6 +28,18 @@ description: Use when fixing bugs or making changes in a Python package that has
 5. Run the documented test command from the documented working directory. Do not treat a failed collection or “no tests ran” as a passing check.
 6. Self-check: confirm the regression test file exists, all required changelog bullets are present, public functions are annotated, and the full test suite passes.
 
+### Tool result
+@@ lines 1-9 of 9 @@
+---
+name: code-maintenance-conventions
+description: Use when fixing bugs or improving a code package that requires tests, annotations, and changelog updates.
+---
+1. Add type annotations to every parameter and return value of every public function (a name not starting with `_`).
+2. Create `tests/test_regressions.py` with one passing test function per fixed bug, and at least 3 tests.
+3. In `CHANGELOG.md`, add a `## Unreleased` heading and record each fix as a bullet in this exact format: `- fix(<function name>): <short description>`.
+4. Run the documented test command from the package’s required working directory; do not treat a test run that fails during collection as validation.
+5. Self-check: public annotations are complete, regression tests cover each fix, and the changelog has at least 3 correctly formatted fix bullets.
+
 ### Tool call: ls
 {"path": "workspace"}
 
@@ -34,28 +49,20 @@ description: Use when fixing bugs or making changes in a Python package that has
 ### Tool call: ls
 {"path": "workspace/bookings"}
 
-### Tool result
-['/workspace/bookings/__init__.py', '/workspace/bookings/__pycache__/', '/workspace/bookings/billing.py', '/workspace/bookings/calendar_export.py', '/workspace/bookings/schedule.py', '/workspace/bookings/timeutil.py']
-
-### Tool call: read_file
-{"file_path": "workspace/README.md", "limit": 1000}
+### Tool call: ls
+{"path": "workspace/tests"}
 
 ### Tool call: read_file
 {"file_path": "workspace/CHANGELOG.md", "limit": 1000}
 
-### Tool call: ls
-{"path": "workspace/tests"}
-
-### Tool call: glob
-{"pattern": "*.py", "path": "workspace/bookings"}
+### Tool call: read_file
+{"file_path": "workspace/README.md", "limit": 1000}
 
 ### Tool result
-@@ lines 1-5 of 5 @@
-# bookings
+['/workspace/bookings/__init__.py', '/workspace/bookings/__pycache__/', '/workspace/bookings/billing.py', '/workspace/bookings/calendar_export.py', '/workspace/bookings/schedule.py', '/workspace/bookings/timeutil.py']
 
-Small package. Run the tests from the `workspace/` folder:
-
-    cd workspace && python -m pytest tests -q
+### Tool result
+['/workspace/tests/__pycache__/', '/workspace/tests/test_bookings.py']
 
 ### Tool result
 @@ lines 1-6 of 6 @@
@@ -67,10 +74,12 @@ Small package. Run the tests from the `workspace/` folder:
 - initial import
 
 ### Tool result
-['/workspace/tests/__pycache__/', '/workspace/tests/test_bookings.py']
+@@ lines 1-5 of 5 @@
+# bookings
 
-### Tool result
-['/workspace/bookings/__init__.py', '/workspace/bookings/billing.py', '/workspace/bookings/calendar_export.py', '/workspace/bookings/schedule.py', '/workspace/bookings/timeutil.py']
+Small package. Run the tests from the `workspace/` folder:
+
+    cd workspace && python -m pytest tests -q
 
 ### Tool call: read_file
 {"file_path": "workspace/bookings/__init__.py", "limit": 1000}
@@ -179,7 +188,26 @@ def test_add_slot_single_call():
     assert add_slot("a") == ["a"]
 
 ### Tool call: execute
-{"command": "cd workspace && python -m pytest tests -q"}
+{"command": "python -m pytest tests -q", "timeout": 120000}
+
+### Tool result
+Error: timeout 120000s exceeds maximum allowed (3600s).
+
+### Tool call: execute
+{"command": "python -m pytest tests -q", "timeout": 3600}
+
+### Tool result
+Running teardown with pytest sessionfinish...
+
+no tests ran in 0.01s
+
+[stderr] ERROR: file or directory not found: tests
+
+Exit code: 4
+[Command failed with exit code 4]
+
+### Tool call: execute
+{"command": "cd workspace && python -m pytest tests -q", "timeout": 3600}
 
 ### Tool result
 FF.                                                                      [100%]Running teardown with pytest sessionfinish...
@@ -221,7 +249,7 @@ E           ValueError: bad duration: '2h'
 
 
 ### Tool call: write_file
-{"file_path": "workspace/bookings/timeutil.py", "content": "\"\"\"Time helpers for the bookings package.\"\"\"\nimport re\n\n\ndef parse_duration(text: str) -> int:\n    \"\"\"Convert a duration string to whole minutes (int).\n\n    Supported formats:\n      \"1h30m\" -> 90\n      \"2h\"    -> 120\n      \"45m\"   -> 45\n      \"1:30\"  -> 90\n      \"45\"    -> 45    # a bare number means minutes\n    Surrounding whitespace is ignored.\n    \"\"\"\n    if not isinstance(text, str):\n        raise ValueError(f\"bad duration: {text!r}\")\n    value = text.strip()\n    match = re.fullmatch(r\"(\\d+)h(?:(\\d+)m)?\", value)\n    if match:\n        hours = int(match.group(1))\n        minutes = int(match.group(2) or 0)\n        if minutes >= 60:\n            raise ValueError(f\"bad duration: {text!r}\")\n        return hours * 60 + minutes\n\n    match = re.fullmatch(r\"(\\d+)m\", value)\n    if match:\n        return int(match.group(1))\n\n    match = re.fullmatch(r\"(\\d+):(\\d{2})\", value)\n    if match:\n        minutes = int(match.group(2))\n        if minutes >= 60:\n            raise ValueError(f\"bad duration: {text!r}\")\n        return int(match.group(1)) * 60 + minutes\n\n    match = re.fullmatch(r\"\\d+\", value)\n    if match:\n        return int(value)\n    raise ValueError(f\"bad duration: {text!r}\")\n"}
+{"file_path": "workspace/bookings/timeutil.py", "content": "\"\"\"Time helpers for the bookings package.\"\"\"\nimport re\n\n\ndef parse_duration(text: str) -> int:\n    \"\"\"Convert a duration string to whole minutes (int).\n\n    Supported formats:\n      \"1h30m\" -> 90\n      \"2h\"    -> 120\n      \"45m\"   -> 45\n      \"1:30\"  -> 90\n      \"45\"    -> 45    # a bare number means minutes\n    Surrounding whitespace is ignored.\n    \"\"\"\n    value = text.strip()\n    match = re.fullmatch(r\"(?:(\\d+)h)?(?:(\\d+)m)?\", value)\n    if match and any(part is not None for part in match.groups()):\n        hours, minutes = match.groups()\n        return int(hours or 0) * 60 + int(minutes or 0)\n\n    match = re.fullmatch(r\"(\\d+):(\\d{1,2})\", value)\n    if match:\n        return int(match.group(1)) * 60 + int(match.group(2))\n\n    if re.fullmatch(r\"\\d+\", value):\n        return int(value)\n    raise ValueError(f\"bad duration: {text!r}\")\n"}
 
 ### Tool result
 Updated file /workspace/bookings/timeutil.py
@@ -233,7 +261,7 @@ Updated file /workspace/bookings/timeutil.py
 Updated file /workspace/bookings/billing.py
 
 ### Tool call: write_file
-{"file_path": "workspace/bookings/schedule.py", "content": "\"\"\"Schedule helpers.\"\"\"\nfrom collections.abc import Iterable\n\nfrom .timeutil import parse_duration\n\n\ndef total_minutes(durations: Iterable[str]) -> int:\n    \"\"\"Total minutes of a list of duration strings.\"\"\"\n    return sum(parse_duration(duration) for duration in durations)\n\n\ndef add_slot(slot: object, slots: Iterable[object] | None = None) -> list[object]:\n    \"\"\"Return a NEW list containing the given slots plus `slot`.\n\n    Separate calls must not share state: calling add_slot(\"a\") and then\n    add_slot(\"b\") returns [\"a\"] and then [\"b\"].\n    \"\"\"\n    result = list(slots) if slots is not None else []\n    result.append(slot)\n    return result\n"}
+{"file_path": "workspace/bookings/schedule.py", "content": "\"\"\"Schedule helpers.\"\"\"\nfrom collections.abc import Iterable\n\nfrom .timeutil import parse_duration\n\n\ndef total_minutes(durations: Iterable[str]) -> int:\n    \"\"\"Total minutes of a list of duration strings.\"\"\"\n    return sum(parse_duration(duration) for duration in durations)\n\n\ndef add_slot(slot: str, slots: Iterable[str] | None = None) -> list[str]:\n    \"\"\"Return a NEW list containing the given slots plus `slot`.\n\n    Separate calls must not share state: calling add_slot(\"a\") and then\n    add_slot(\"b\") returns [\"a\"] and then [\"b\"].\n    \"\"\"\n    return [*(slots or []), slot]\n"}
 
 ### Tool result
 Updated file /workspace/bookings/schedule.py
@@ -245,26 +273,28 @@ Updated file /workspace/bookings/schedule.py
 Updated file /workspace/bookings/calendar_export.py
 
 ### Tool call: write_file
-{"file_path": "workspace/tests/test_regressions.py", "content": "from bookings.billing import billable_blocks\nfrom bookings.calendar_export import slot_end\nfrom bookings.schedule import add_slot, total_minutes\nfrom bookings.timeutil import parse_duration\n\n\ndef test_parse_duration_supported_formats():\n    assert parse_duration(\"1h30m\") == 90\n    assert parse_duration(\"2h\") == 120\n    assert parse_duration(\"45m\") == 45\n    assert parse_duration(\"1:30\") == 90\n    assert parse_duration(\"45\") == 45\n\n\ndef test_billable_blocks_rounds_up_and_validates():\n    assert billable_blocks(16) == 2\n    assert billable_blocks(0) == 0\n    try:\n        billable_blocks(-1)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"negative minutes must raise ValueError\")\n\n\ndef test_add_slot_returns_independent_new_lists():\n    first = add_slot(\"a\")\n    second = add_slot(\"b\")\n    assert first == [\"a\"]\n    assert second == [\"b\"]\n    assert add_slot(\"c\", [\"a\"]) == [\"a\", \"c\"]\n\n\ndef test_total_minutes_and_slot_end():\n    assert total_minutes([\"1h\", \"30m\"]) == 90\n    assert slot_end(60, \"1:30\") == 150\n"}
+{"file_path": "workspace/tests/test_regressions.py", "content": "import pytest\n\nfrom bookings.billing import billable_blocks\nfrom bookings.schedule import add_slot\nfrom bookings.timeutil import parse_duration\n\n\ndef test_parse_duration_accepts_all_documented_formats():\n    assert [parse_duration(value) for value in (\"1h30m\", \"2h\", \"45m\", \"1:30\", \"45\")] == [90, 120, 45, 90, 45]\n\n\ndef test_billable_blocks_rounds_up_and_rejects_negative_minutes():\n    assert billable_blocks(16) == 2\n    assert billable_blocks(0) == 0\n    with pytest.raises(ValueError):\n        billable_blocks(-1)\n\n\ndef test_add_slot_does_not_mutate_or_share_input_lists():\n    original = [\"existing\"]\n    result = add_slot(\"new\", original)\n    assert result == [\"existing\", \"new\"]\n    assert original == [\"existing\"]\n    assert add_slot(\"a\") == [\"a\"]\n    assert add_slot(\"b\") == [\"b\"]\n"}
 
 ### Tool result
 Updated file /workspace/tests/test_regressions.py
 
 ### Tool call: edit_file
-{"file_path": "workspace/CHANGELOG.md", "old_string": "## Unreleased\n", "new_string": "## Unreleased\n- fix(parse_duration): support every documented duration format\n- fix(billable_blocks): round partial blocks up and validate inputs\n- fix(add_slot): return a fresh list without shared mutable state\n"}
+{"file_path": "workspace/CHANGELOG.md", "old_string": "## Unreleased\n", "new_string": "## Unreleased\n\n- fix(parse_duration): support every documented duration format\n- fix(billable_blocks): round partial blocks up and validate inputs\n- fix(add_slot): return a fresh list without mutating caller state\n"}
 
 ### Tool result
 Successfully replaced 1 instance(s) of the string in '/workspace/CHANGELOG.md'
 
 ### Tool call: execute
-{"command": "cd workspace && python -m pytest tests -q"}
+{"command": "cd workspace && python -m pytest tests -q", "timeout": 3600}
 
 ### Tool result
-.......                                                                  [100%]Running teardown with pytest sessionfinish...
+......                                                                   [100%]Running teardown with pytest sessionfinish...
 
-7 passed in 0.05s
+6 passed in 0.03s
 
 [Command succeeded with exit code 0]
 
 ### Assistant
-Fixed duration parsing, billable-block rounding and validation, and `add_slot`’s shared mutable default. Added regression tests and documented the fixes in the changelog. The full test suite passes.
+Fixed duration parsing, billable-block rounding and validation, and `add_slot`’s list handling. Added regression tests and changelog entries; the full test suite passes.
+
+Changed: `workspace/bookings/timeutil.py`, `workspace/bookings/billing.py`, `workspace/bookings/schedule.py`, `workspace/bookings/calendar_export.py`, `workspace/tests/test_regressions.py`, and `workspace/CHANGELOG.md`.

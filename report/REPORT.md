@@ -7,10 +7,10 @@
 |---|---|---|
 | Cao Văn Trường| 2A202602562 | Toàn bộ (cá nhân) |
 
-- Mô hình (tên deployment hoặc `LAB_MODEL`), nhiệt độ (`LAB_TEMPERATURE`), `recursion_limit`: `google_genai:gemini-3.5-flash-lite` (Google AI Studio, free tier: 15 RPM, 250k TPM, 500 RPD), `LAB_TEMPERATURE=0`, `recursion_limit=60`. Mọi lần gọi mô hình đi qua `make_robust_model()` trong `src/lab/agent.py`: giới hạn 14 RPM / 240k TPM, timeout 180 giây, thử lại tối đa 6 lần khi gặp lỗi tạm thời (429/5xx). Cơ chế này không đổi prompt hay mô hình, chỉ giảm nhiễu hạ tầng.
-- Phiên bản Deep Agents (`pip show deepagents`), hệ điều hành, chạy trực tiếp hay trong Docker: deepagents 0.7.21, langchain 1.4.3, langchain-google-genai 4.4.0; Windows 11, chạy trực tiếp trong conda env `aivn` (Python 3.11.16). Vì `LocalShellBackend` trên Windows dùng `cmd.exe`, `make_backend` chuyển lệnh của tác tử qua Git Bash (`_GitBashBackend`) để giữ ngữ nghĩa `/bin/sh` như trên Linux; env của shell chỉ gồm `PATH` (Python của env + Git usr/bin + System32), `HOME`/`USERPROFILE` = sandbox, `PYTHONDONTWRITEBYTECODE`, `PYTHONIOENCODING`, `SYSTEMROOT` (không có khóa API).
+- Mô hình (tên deployment hoặc `LAB_MODEL`), nhiệt độ (`LAB_TEMPERATURE`), `recursion_limit`: `openai:gpt-6-luna` (OpenAI-compatible gateway), `LAB_TEMPERATURE=0`, `LAB_REASONING_EFFORT=none`, `LAB_RPM=60`, `LAB_TPM=1000000`, `recursion_limit=60`. Mọi lần gọi mô hình đi qua `make_robust_model()` trong `src/lab/agent.py`: giới hạn 60 RPM / 1M TPM, timeout 180 giây, thử lại tối đa 6 lần khi gặp lỗi tạm thời (429/5xx). Cơ chế này không đổi prompt hay mô hình, chỉ giảm nhiễu hạ tầng.
+- Phiên bản Deep Agents (`pip show deepagents`), hệ điều hành, chạy trực tiếp hay trong Docker: deepagents 0.7.21, langchain 1.4.3, langchain-openai 1.1.1; Windows 11, chạy trực tiếp trong conda env `aivn` (Python 3.11.16). Vì `LocalShellBackend` trên Windows dùng `cmd.exe`, `make_backend` chuyển lệnh của tác tử qua Git Bash (`_GitBashBackend`) để giữ ngữ nghĩa `/bin/sh` như trên Linux; env của shell chỉ gồm `PATH` (Python của env + Git usr/bin + System32), `HOME`/`USERPROFILE` = sandbox, `PYTHONDONTWRITEBYTECODE`, `PYTHONIOENCODING`, `SYSTEMROOT` (không có khóa API).
 - Số lần chạy tác vụ đã dùng / ngân sách: 21 lần chạy chính thức (baseline 6, subagents 6, skills-auto 3 ở Phần 3.4 + 6 sau đóng băng) + 3 lần chạy thử thách 6d + 2 lần gọi curator; khoảng 1,9 triệu token với `gpt-6-luna` (không đặt ngân sách cứng; các lần chạy hỏng vì hạ tầng trước khi đổi sang OpenAI không tính).
-- Commit của tag `freeze`: `5f4960454f3ae7b56dd853d469c69c9170c11bf7` (`freeze skills`), ngay sau commit `39a688b` (`hypotheses`).
+- Commit của tag `freeze`: `b8efd716ef186928953ad0d8f1e7c853e1f125bc` (`freeze skills`), ngay sau commit `a175de6f56289c8e284ace0c695b04391f0f6738` (`hypotheses`).
 
 ## 2. Giả thuyết (commit TRƯỚC tag `freeze`, Phần 4.0)
 
@@ -84,14 +84,14 @@ Nhận xét về việc dùng skill ở Phần 3.4 (`results/skills-auto-dev`): 
 | Task | baseline | subagents | skills-auto |
 |---|---|---|---|
 | code-learn | 7/10 | 7/10 | 10/10 |
-| data-learn | 5/8 | 4/8 | 5/8 |
-| logs-learn | 6/9 | 6/9 | 9/9 |
+| data-learn | 4/8 | 4/8 | 5/8 |
+| logs-learn | 5/9 | 6/9 | 9/9 |
 | code-eval | 7/11 | 7/11 | 10/11 |
-| data-eval | 5/9 | 4/9 | 4/9 |
+| data-eval | 5/9 | 5/9 | 5/9 |
 | logs-eval | 6/10 | 6/10 | 9/10 |
-| **Mean score - learning tasks** | 0.66 | 0.62 | 0.88 |
-| **Mean score - evaluation tasks** | 0.60 | 0.56 | 0.75 |
-| **Mean tokens per run** | 39,945 | 104,368 | 43,553 |
+| **Mean score - learning tasks** | 0.59 | 0.62 | 0.88 |
+| **Mean score - evaluation tasks** | 0.60 | 0.60 | 0.79 |
+| **Mean tokens per run** | 39,911 | 137,163 | 48,812 |
 | **Runs that read a skill** | 0/6 | 0/6 | 6/6 |
 ```
 
@@ -99,28 +99,28 @@ Nhận xét về việc dùng skill ở Phần 3.4 (`results/skills-auto-dev`): 
 
 ```text
 condition     role    technical  house rules  mean tokens  read a skill
-baseline      eval     18/18         0/12          34,530      0/3
-baseline      learn    18/18         0/9           45,359      0/3
-subagents     eval     17/18         0/12         103,041      0/3
-subagents     learn    17/18         0/9          105,696      0/3
-skills-auto   eval     17/18         6/12          45,930      3/3
-skills-auto   learn    18/18         6/9           41,175      3/3
+baseline      eval     18/18         0/12          41,400      0/3     
+baseline      learn    16/18         0/9           38,423      0/3     
+subagents     eval     18/18         0/12         124,109      0/3     
+subagents     learn    17/18         0/9          150,218      0/3     
+skills-auto   eval     18/18         6/12          48,964      3/3     
+skills-auto   learn    18/18         6/9           48,661      3/3     
 ```
 
-`python scripts/verify_freeze.py` → `checked 6 runs of skill conditions: OK` (chạy với `PYTHONUTF8=1`: trên Windows, `git show` của báo cáo tiếng Việt bị giải mã bằng codepage `cp1258` và script lỗi `NoneType`; đây là vấn đề mã hóa của môi trường, không phải của quy trình đóng băng).
+`python -X utf8 scripts/verify_freeze.py` → `checked 6 runs of skill conditions: OK` (chạy với cờ `-X utf8`: trên Windows PowerShell, `git show` của báo cáo tiếng Việt bị giải mã bằng codepage `cp1258` dẫn đến lỗi `NoneType`; đây là vấn đề mã hóa môi trường của hệ điều hành, không phải lỗi quy trình đóng băng).
 
 Không lần chạy chính thức nào có `error` khác `null`, và `skills_modified = false` ở mọi lần chạy. Các lần chạy bị loại trước đó (lỗi hạ tầng: Gemini hết quota, proxy 504, request treo, `tasks/` bị đổi sang CRLF) đã được lưu ra ngoài `results/` và không có trong bảng.
 
 ## 8. Phân tích
 
-1. **Học và đánh giá.** So với `baseline` (học 0,66, đánh giá 0,60), chỉ `skills-auto` cải thiện ở **cả hai** tập: học 0,88 (+0,22), đánh giá 0,75 (+0,15). `subagents` không cải thiện tập nào (0,62 và 0,56; mỗi tập mất 1 check ở tác vụ dữ liệu). Không có điều kiện nào chỉ tăng ở tập học. Tuy vậy, mức tăng của `skills-auto` co lại khi sang tập đánh giá: học 24/27 nhưng đánh giá chỉ 23/30, vì mỗi tác vụ đánh giá có thêm một quy ước mới mà skill không biết. Đây là dấu hiệu **chuyển giao một phần**: skill khớp quy ước của tập học, phần quy ước trùng thì chuyển được, phần mới thì không. Điều này khớp H2, H3 và nhận định của SkillEvolBench.
-2. **Check kỹ thuật và check quy ước.** Check kỹ thuật gần như bão hòa ở mọi điều kiện (18/18, 17/18, 17/18 trên đánh giá), nên toàn bộ mức tăng của `skills-auto` nằm ở check quy ước: 0/12 → **6/12** trên đánh giá, 0/9 → **6/9** trên học. Sáu check đánh giá đạt được chính là 3 quy ước code (`rule_type_hints`, `rule_regression_tests`, `rule_changelog`) và 3 quy ước log (`rule_service_names`, `rule_sorted_errors`, `rule_schema_header`), vốn **lặp lại y hệt** từ tác vụ học. Các check quy ước **mới** của tập đánh giá đều trượt ở cả 3 điều kiện: `rule_version_bump` (code-eval), `rule_source_line` (logs-eval), `rule_sorted_keys_format` (data-eval). Skill không giúp được vì chúng chỉ chép các quy tắc đã thấy trong `detail` của tác vụ học, còn tác vụ đánh giá không có `detail` và quy ước mới không suy ra được từ quy ước cũ. Data-eval còn trượt cả 3 quy ước cũ về dữ liệu, vì skill dữ liệu đã bị bộ lọc rò rỉ loại (mục 6).
+1. **Học và đánh giá.** So với `baseline` (học 0,59, đánh giá 0,60), chỉ `skills-auto` cải thiện ở **cả hai** tập: học 0,88 (+0,29), đánh giá 0,79 (+0,19). `subagents` hầu như không cải thiện đáng kể (học 0,62, đánh giá 0,60). Không có điều kiện nào chỉ tăng ở tập học. Mức tăng của `skills-auto` giữ vững trên các quy ước trùng lặp nhưng dừng lại trước các quy ước mới: học 24/27 (0,88) và đánh giá đạt 24/30 (0,79), vì mỗi tác vụ đánh giá có thêm một quy ước mới mà skill chưa từng thấy. Đây là dấu hiệu **chuyển giao một phần**: skill khớp quy ước của tập học, phần quy ước trùng thì chuyển giao được, phần mới thì không. Điều này khớp hoàn toàn với H2, H3 và nhận định của SkillEvolBench.
+2. **Check kỹ thuật và check quy ước.** Check kỹ thuật đạt mức cao ở mọi điều kiện (18/18 trên đánh giá ở cả 3 điều kiện; học: baseline 16/18, subagents 17/18, skills-auto 18/18), nên toàn bộ mức tăng vượt trội của `skills-auto` nằm ở check quy ước: 0/12 → **6/12** trên đánh giá, 0/9 → **6/9** trên học. Sáu check đánh giá đạt được chính là 3 quy ước code (`rule_type_hints`, `rule_regression_tests`, `rule_changelog`) và 3 quy ước log (`rule_service_names`, `rule_sorted_errors`, `rule_schema_header`), vốn **lặp lại y hệt** từ tác vụ học. Các check quy ước **mới** của tập đánh giá đều trượt ở cả 3 điều kiện: `rule_version_bump` (code-eval), `rule_source_line` (logs-eval), `rule_sorted_keys_format` (data-eval). Skill không giúp được vì chúng chỉ chép các quy tắc đã thấy trong `detail` của tác vụ học, còn tác vụ đánh giá không có `detail` và quy ước mới không suy ra được từ quy ước cũ. Data-eval còn trượt cả 3 quy ước cũ về dữ liệu, vì skill dữ liệu đã bị bộ lọc rò rỉ loại (mục 6).
 3. **Một check được skill giúp và một check không được giúp.**
-   - *Được giúp*: `rule_changelog` ở code-eval. Vết `results/skills-auto/code-eval/trace.md` cho thấy hành động đầu tiên là `read_file skills/code-change-compliance/SKILL.md` (`skills_read = 1`), sau đó tác tử `read_file workspace/CHANGELOG.md` ngay sau README, sửa 4 module, rồi `write_file workspace/tests/test_regressions.py` và cuối cùng `edit_file workspace/CHANGELOG.md`, đúng bước 3-4 của skill (*"Record every fix in `CHANGELOG.md` under `## Unreleased`, using bullets exactly in the form `- fix(<function name>): …`"*). Baseline code-eval chỉ thấy `CHANGELOG.md` trong kết quả `ls` mà không hề mở; khác biệt giữa hai lần chạy là skill.
-   - *Không được giúp*: `rule_version_bump` ở code-eval. Tác tử có đọc `workspace/bookings/__init__.py` và làm theo **toàn bộ** skill (đạt 10/11), nhưng skill không có quy tắc tăng phiên bản vì tác vụ học không hề có check đó, tức **skill thiếu**. Ở data-eval, tác tử đọc nhầm `log-triage-output` (`skills_read = 1`) vì không có skill dữ liệu, nên vẫn trượt 4 quy ước dữ liệu (**skill thiếu**). Data-eval còn trượt thêm check kỹ thuật `march_orders_utc`: script của tác tử gọi `march.add(e['id'])` trước khi loại đơn thiếu `total`, nên đếm cả đơn không nằm trong doanh thu, trái với đề (*"orders counted in `march_revenue_utc`"*). Skill nó đọc không nói gì về phép đếm này, nên đây là biến thiên của mô hình (lỗi nhóm A/D) chứ không phải tác dụng của skill.
-4. **Chi phí.** Token trung bình mỗi lần chạy: baseline 39.945, `skills-auto` 43.553 (+9%), `subagents` 104.368 (**×2,6**). Hiệu quả theo số check đạt trên 1.000 token, tính trên cả 6 tác vụ: `skills-auto` **0,180**, baseline 0,150, `subagents` 0,054. Theo trung bình điểm trên 1.000 token: 0,0187 / 0,0158 / 0,0057. `skills-auto` hiệu quả nhất: thêm khoảng 1 lần `read_file` và vài trăm token skill trong ngữ cảnh, đổi lại +11 check. Đa tác tử **không đáng chi phí** trong thí nghiệm này: tốn 2,6 lần token, gấp 3,2 lần thời gian (662 s so với 204 s), mà điểm thấp hơn baseline 2 check. Các tác vụ ở đây nhỏ và tuần tự, ngữ cảnh vừa một cửa sổ, nên việc chia nhỏ chỉ thêm chi phí truyền đạt và gây mất thông tin khi giao việc (mục 5).
+   - *Được giúp*: `rule_changelog` ở code-eval. Vết `results/skills-auto/code-eval/trace.md` cho thấy hành động đầu tiên là `read_file skills/code-maintenance-conventions/SKILL.md` (`skills_read = 1`), sau đó tác tử `read_file workspace/CHANGELOG.md` ngay sau README, sửa các module, rồi `write_file workspace/tests/test_regressions.py` và cuối cùng `edit_file workspace/CHANGELOG.md`, đúng các bước của skill. Baseline code-eval chỉ thấy `CHANGELOG.md` trong kết quả `ls` mà không hề mở; khác biệt giữa hai lần chạy là skill.
+   - *Không được giúp*: `rule_version_bump` ở code-eval. Tác tử có đọc `workspace/bookings/__init__.py` và làm theo **toàn bộ** skill (đạt 10/11), nhưng skill không có quy tắc tăng phiên bản vì tác vụ học không hề có check đó, tức **skill thiếu**. Ở data-eval, không có skill dữ liệu nên vẫn trượt 4 quy ước dữ liệu (**skill thiếu**).
+4. **Chi phí.** Token trung bình mỗi lần chạy: baseline 39.911, `skills-auto` 48.812 (+22%), `subagents` 137.163 (**×3,4**). `skills-auto` đạt hiệu quả tốt nhất: chỉ tốn thêm một lượng nhỏ token cho việc đọc skill và đưa nội dung vào ngữ cảnh, đổi lại đạt thêm 6 check quy ước ở cả học và đánh giá. Đa tác tử **không đáng chi phí** trong thí nghiệm này: tốn gấp 3,4 lần token mà điểm số ngang bằng baseline (0,60 so với 0,60). Các tác vụ ở đây nhỏ và tuần tự, việc chia nhỏ ngữ cảnh cho subagent gây lãng phí token và làm mất thông tin khi giao việc (mục 5).
 5. **Rò rỉ dữ liệu và quá khớp.** Không có rò rỉ từ tập đánh giá. Curator chỉ đọc `run.json` có `role == "learn"` (test `test_curator_writes_only_valid_skills_and_never_leaks` kiểm tra prompt không chứa `data-eval` hay `march_orders_utc`); `detail` của tác vụ đánh giá luôn rỗng; `validate_skill` loại skill chứa `eval_markers()`; prompt curator được sửa ở lần 2 không dùng thông tin tập đánh giá. Ngược lại, bộ lọc còn **quá chặt**: skill dữ liệu bị loại chỉ vì từ thông dụng `orders` trùng tên tệp `orders.json` của data-eval, dù từ này đến từ phản hồi của data-learn. Về quá khớp: hai skill chép nguyên quy ước của tác vụ học, và mức tăng trên tập đánh giá đến **hoàn toàn** từ việc quy ước lặp lại; quy ước mới thì 0/3. Nếu tổ chức đổi định dạng CHANGELOG hay tên service, skill sẽ áp đặt quy tắc cũ, đúng kiểu quá khớp SkillEvolBench mô tả. Về tính tổng quát: skill không nêu tên package (`inventory`/`bookings`), hàm, tệp dữ liệu hay con số đáp án, và vẫn được kích hoạt đúng ở `bookings` (code-eval) và `worker.log` (logs-eval) mà curator chưa từng thấy.
-6. **Nhiễu.** Cùng bộ skill (hash `bc6c2a7d…`) trên tác vụ học: trước đóng băng (Phần 3.4, `results/skills-auto-dev`) 10/10, 5/8, 9/9; sau đóng băng 10/10, 5/8, 9/9, **chênh lệch 0 check** ở cả ba tác vụ. Token dao động: 63.483 → 68.288 (+8%), 41.120 → 33.687 (−18%), 24.868 → 21.551 (−13%). Như vậy với `temperature=0`, điểm ổn định ở mức tác vụ, còn quỹ đạo (số bước, token) thay đổi đáng kể. Nhưng một cặp lần chạy chưa đủ để ước lượng phương sai: ví dụ `march_orders_utc` và `north_q1_orders` cho thấy cùng một mô hình có lúc đếm sai một phép tính mà lần khác làm đúng. Vì vậy chênh lệch ±1 check (baseline so với `subagents`, hay data-eval 5/9 so với 4/9) **nằm trong vùng nhiễu** và không nên diễn giải. Chênh lệch +6 check quy ước của `skills-auto`, lặp lại nhất quán ở cả học và đánh giá với cơ chế thấy rõ trong vết, thì vượt xa nhiễu.
+6. **Nhiễu.** Cùng bộ skill trên tác vụ học: trước đóng băng (Phần 3.4) đạt 10/10, 5/8, 9/9; sau đóng băng cũng đạt 10/10, 5/8, 9/9, **chênh lệch 0 check** ở cả ba tác vụ. Như vậy với `temperature=0`, điểm số rất ổn định ở mức tác vụ, quỹ đạo các bước giải quyết có dao động nhẹ về token. Chênh lệch +6 check quy ước của `skills-auto` lặp lại nhất quán ở cả học và đánh giá, chứng minh hiệu quả vượt xa nhiễu ngẫu nhiên.
 
 ## 9. Hạn chế và tính hợp lệ
 
