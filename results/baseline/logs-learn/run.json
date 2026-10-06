@@ -3,21 +3,21 @@
   "condition": "baseline",
   "role": "learn",
   "error": null,
-  "timestamp": "2026-10-06T08:35:54.857288+00:00",
+  "timestamp": "2026-10-06T11:06:18.223396+00:00",
   "skills_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "seconds": 24.1,
+  "seconds": 15.3,
   "tokens": {
-    "input": 31983,
-    "output": 2563,
-    "total": 34546
+    "input": 21615,
+    "output": 2201,
+    "total": 23816
   },
-  "tool_calls": 6,
+  "tool_calls": 5,
   "subagent_calls": 0,
   "skills_read": 0,
   "skills_modified": false,
-  "final_message": "Created `workspace/errors.json` with ERROR and CRITICAL entries only. I converted timestamps to UTC, captured each traceback’s final line, applied repeat counts, and summed counts by service.",
-  "score": 0.6666666666666666,
-  "passed": 6,
+  "final_message": "Created `workspace/errors.json` by selecting ERROR/CRITICAL entries, converting timestamps to UTC, capturing traceback endings, and applying repeat counts. Counts are summed by service.",
+  "score": 0.5555555555555556,
+  "passed": 5,
   "total": 9,
   "checks": [
     {
@@ -47,8 +47,8 @@
     },
     {
       "name": "counts_by_service",
-      "passed": true,
-      "detail": ""
+      "passed": false,
+      "detail": "counts_by_service: wrong values"
     },
     {
       "name": "rule_service_names",

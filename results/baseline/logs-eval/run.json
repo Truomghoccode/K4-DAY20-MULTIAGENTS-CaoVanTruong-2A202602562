@@ -1,24 +1,24 @@
 {
-  "task": "logs-learn",
-  "condition": "skills-auto",
-  "role": "learn",
+  "task": "logs-eval",
+  "condition": "baseline",
+  "role": "eval",
   "error": null,
-  "timestamp": "2026-10-06T11:19:50.283476+00:00",
-  "skills_sha256": "b7c37ab46ff8be42325492768856977ac33b4fd05dcbfdc5f795cec95dc57163",
-  "seconds": 10.3,
+  "timestamp": "2026-10-06T08:52:23.996279+00:00",
+  "skills_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "seconds": 22.1,
   "tokens": {
-    "input": 21700,
-    "output": 692,
-    "total": 22392
+    "input": 28749,
+    "output": 2239,
+    "total": 30988
   },
   "tool_calls": 6,
   "subagent_calls": 0,
-  "skills_read": 2,
+  "skills_read": 0,
   "skills_modified": false,
-  "final_message": "Created `workspace/errors.json` with ERROR/CRITICAL entries only, UTC timestamps, traceback endings, and repeat-weighted service counts. Service names are normalized and records sorted per Acme’s conventions. JSON validation passed.",
-  "score": 1.0,
-  "passed": 9,
-  "total": 9,
+  "final_message": "Created `workspace/errors.json` with ERROR, SEVERE, and FATAL entries only. Converted timestamps to UTC, applied repeat counts (including repeats after extra lines), and summed counts by service.",
+  "score": 0.6,
+  "passed": 6,
+  "total": 10,
   "checks": [
     {
       "name": "valid_structure",
@@ -36,7 +36,7 @@
       "detail": ""
     },
     {
-      "name": "exception_fields",
+      "name": "levels_uppercase",
       "passed": true,
       "detail": ""
     },
@@ -52,17 +52,22 @@
     },
     {
       "name": "rule_service_names",
-      "passed": true,
+      "passed": false,
       "detail": ""
     },
     {
       "name": "rule_sorted_errors",
-      "passed": true,
+      "passed": false,
       "detail": ""
     },
     {
       "name": "rule_schema_header",
-      "passed": true,
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "rule_source_line",
+      "passed": false,
       "detail": ""
     }
   ]

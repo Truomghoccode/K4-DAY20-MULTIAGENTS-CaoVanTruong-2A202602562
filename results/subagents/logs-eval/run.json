@@ -1,24 +1,24 @@
 {
-  "task": "logs-learn",
+  "task": "logs-eval",
   "condition": "subagents",
-  "role": "learn",
+  "role": "eval",
   "error": null,
-  "timestamp": "2026-10-06T11:10:14.065408+00:00",
+  "timestamp": "2026-10-06T08:55:52.642590+00:00",
   "skills_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "seconds": 249.0,
+  "seconds": 49.8,
   "tokens": {
-    "input": 175998,
-    "output": 4068,
-    "total": 180066
+    "input": 102755,
+    "output": 2491,
+    "total": 105246
   },
-  "tool_calls": 12,
+  "tool_calls": 11,
   "subagent_calls": 3,
   "skills_read": 0,
   "skills_modified": false,
-  "final_message": "Created `workspace/errors.json` with the ERROR/CRITICAL entries, UTC timestamps, traceback endings, repeat counts, and per-service totals. Validated the JSON structure.",
-  "score": 0.6666666666666666,
+  "final_message": "Created `workspace/errors.json` with 24 qualifying entries. Timestamps are converted to UTC, levels normalized to uppercase, and repeat markers included in per-service counts. JSON validation passed.",
+  "score": 0.6,
   "passed": 6,
-  "total": 9,
+  "total": 10,
   "checks": [
     {
       "name": "valid_structure",
@@ -36,7 +36,7 @@
       "detail": ""
     },
     {
-      "name": "exception_fields",
+      "name": "levels_uppercase",
       "passed": true,
       "detail": ""
     },
@@ -53,17 +53,22 @@
     {
       "name": "rule_service_names",
       "passed": false,
-      "detail": "RULE: service names in the output are lower-case with '-' replaced by '_' (payment-service -> payment_service)."
+      "detail": ""
     },
     {
       "name": "rule_sorted_errors",
       "passed": false,
-      "detail": "RULE: `errors` is sorted by service, then by timestamp_utc, ascending."
+      "detail": ""
     },
     {
       "name": "rule_schema_header",
       "passed": false,
-      "detail": "RULE: the top-level object has \"schema_version\": 2 and \"generated_by\": \"log-triage\"."
+      "detail": ""
+    },
+    {
+      "name": "rule_source_line",
+      "passed": false,
+      "detail": ""
     }
   ]
 }
